@@ -143,7 +143,13 @@ export const oauthConfig = {
   ),
   serverUrl: BASE_URL,
   userLookup: async (_jwt: unknown) => {
-    return SINGLE_USER;
+    return {
+      id: SINGLE_USER.id,
+      username: SINGLE_USER.username,
+      // Ensure a concrete string for email to satisfy stricter UserProfile types
+      email: SINGLE_USER.email ?? "single-user@example.com",
+      scopes: SINGLE_USER.scopes,
+    };
   },
 };
 

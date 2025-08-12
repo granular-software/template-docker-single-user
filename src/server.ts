@@ -15,6 +15,7 @@ const expressApp = createMCPServer({
   exposeTypes: true,
   serverMetadata: {
     name: "{{PROJECT_NAME}}",
+    url: BASE_URL,
     version: "1.0.0",
     description: "{{PROJECT_DESCRIPTION}}",
   },
