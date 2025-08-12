@@ -56,8 +56,12 @@ export const oauthConfig = {
       serverUrl: BASE_URL,
       jwtSecret: process.env.JWT_SECRET || "change-me",
       allowDynamicClientRegistration: true,
+      // Enable refresh tokens and adjust lifetimes
+      allowRefreshTokens: true,
+      accessTokenLifetime: 60 * 60 * 4, // 4 hours
+      refreshTokenLifetime: 60 * 60 * 24 * 7, // 7 days
       supportedScopes: ["read", "write"],
-      supportedGrantTypes: ["authorization_code"],
+      supportedGrantTypes: ["authorization_code", "refresh_token"],
       auth: {
         authenticateUser: async (credentials: { username?: string; password?: string }) => {
           const provided = (credentials?.password || "").trim();
@@ -156,6 +160,10 @@ export const oauthConfig = {
     storage,
   ),
   serverUrl: BASE_URL,
+  // JWT verification tuning
+  jwtOptions: {
+    clockTolerance: 60,
+  },
   userLookup: async (_jwt: unknown) => {
     return {
       id: SINGLE_USER.id,
