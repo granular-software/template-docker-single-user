@@ -2,21 +2,25 @@
 
 {{PROJECT_DESCRIPTION}}
 
-Single-user docker template: an API key is generated and stored in `DATA_DIR`. The login page asks for the key.
+Single-user docker template with SQLite database: API key authentication with full OAuth2.1 implementation.
 
 ## Quick Start
 
 ```bash
 npm install
 cp env.example .env
+npm run secret:generate
+# Set your API_KEY in .env
+npm run db:init
 npm run dev
 ```
 
 ## Features
 
 - Docker-ready
-- API key login page (OAuth2.1 compatible surface)
-- No database required
+- Single user with API key authentication
+- Full OAuth2.1 implementation
+- SQLite database for token storage
 
 ## License
 

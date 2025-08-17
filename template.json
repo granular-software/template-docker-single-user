@@ -1,14 +1,17 @@
 {
-  "name": "Docker + Oauth2.1 + Single user (no DB)",
-  "description": "Single user authentication (= API key) while still implementing the OAuth2.1 protocol, as required by the MCP specs",
+  "id": "template-docker-single-user",
+  "name": "Docker + OAuth2.1 + Single User (SQLite)",
+  "description": "Single user OAuth2.1 MCP server with API key authentication using SQLite database",
   "version": "1.0.0",
-  "mcpressoVersion": "^0.7.0",
+  "mcpressoVersion": "^0.8.0",
   "category": "docker",
   "authType": "oauth",
   "complexity": "easy",
   "features": [
-    "MCP server",
-    "TypeScript",
+    "OAuth2.1 authentication",
+    "SQLite database (file-based)",
+    "Single user with API key",
+    "Express.js server",
     "Production ready"
   ],
   "requirements": [
@@ -16,6 +19,18 @@
     "npm or yarn"
   ],
   "envVars": [
+    {
+      "name": "JWT_SECRET",
+      "description": "Secret key for JWT tokens",
+      "required": true,
+      "example": "your-secure-secret-key-here"
+    },
+    {
+      "name": "API_KEY",
+      "description": "API key for single user authentication",
+      "required": true,
+      "example": "your-api-key-here"
+    },
     {
       "name": "PORT",
       "description": "Server port",
@@ -25,18 +40,20 @@
     {
       "name": "SERVER_URL",
       "description": "Base URL of your server",
-      "required": true
+      "required": true,
+      "example": "http://localhost:3000"
     },
     {
-      "name": "DATA_DIR",
-      "description": "Directory to persist API key and OAuth state",
+      "name": "DB_PATH",
+      "description": "Path to SQLite database file",
       "required": false,
-      "default": "./data"
-    },
-    {
-      "name": "API_KEY_FILE",
-      "description": "Optional path to API key file",
-      "required": false
+      "default": "data/app.db"
     }
+  ],
+  "resourceFolders": ["src/resources"],
+  "configFiles": [
+    "package.json",
+    "tsconfig.json",
+    "env.example"
   ]
 }
