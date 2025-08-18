@@ -1,0 +1,82 @@
+# Docker + Single User Template
+
+Simple MCP server with API key authentication and SQLite database.
+
+## Quick Start
+
+```bash
+git clone <template-repo>
+cd template-docker-single-user
+cp env.example .env
+# Edit .env with your values
+docker-compose up -d
+```
+
+## Environment
+```bash
+JWT_SECRET=your-secure-secret-key
+API_KEY=your-api-key-here
+SERVER_URL=http://localhost:3000
+PORT=3000
+DB_PATH=data/app.db
+```
+
+## Resource Example
+```typescript
+const taskResource = createResource({
+  name: "task",
+  schema: TaskSchema,
+  uri_template: "tasks/{id}",
+  methods: {
+    create: { 
+      handler: async (data, user) => {
+        // user is always the same single user
+        return createTask(data);
+      }
+    },
+    list: { 
+      handler: async () => {
+        return listAllTasks();
+      }
+    },
+  },
+});
+```
+
+## Handler Pattern
+```typescript
+// Single user handlers receive consistent user context
+handler: async (data, user) => {
+  // user.id: 'single-user'
+  // user.username: 'api-user'
+  // user.scopes: ['read', 'write']
+  
+  return await processData(data);
+}
+```
+
+## Authentication
+```bash
+# Set API key in header
+curl -H "X-API-Key: your-api-key-here" \
+     http://localhost:3000/api/tasks
+
+# Or use query parameter
+curl "http://localhost:3000/api/tasks?api_key=your-api-key-here"
+```
+
+## Docker
+```bash
+# Start
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+description:
+globs:
+alwaysApply: false
+---
