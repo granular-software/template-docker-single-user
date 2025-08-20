@@ -1,0 +1,188 @@
+# Resource Design Patterns for MCP Servers
+
+## Basic CRUD Resource
+The foundation of any MCP server - define your data model and get full CRUD operations:
+
+```typescript
+const taskResource = createResource({
+  name: "task",
+  schema: TaskSchema,
+  uri_template: "tasks/{id}",
+  methods: {
+    create: { 
+      description: "Create a new task",
+      handler: async (data, user) => createTask(data, user) 
+    },
+    list: { 
+      description: "List all tasks",
+      handler: async (_, user) => listTasks(user) 
+    },
+    get: { 
+      description: "Get a task by ID",
+      handler: async ({ id }, user) => getTask(id, user) 
+    },
+    update: { 
+      description: "Update an existing task",
+      handler: async ({ id, ...data }, user) => updateTask(id, data, user) 
+    },
+    delete: { 
+      description: "Delete a task",
+      handler: async ({ id }, user) => deleteTask(id, user) 
+    },
+  },
+});
+```
+
+## Advanced Resource Patterns
+
+### Search and Filtering
+```typescript
+search: {
+  description: "Search tasks by title, description, or tags with advanced filtering",
+  inputSchema: z.object({
+    query: z.string().describe("Search term for title or description"),
+    status: z.enum(["pending", "in_progress", "completed"]).optional(),
+    priority: z.enum(["low", "medium", "high"]).optional(),
+    tags: z.array(z.string()).optional().describe("Filter by tags"),
+    dateFrom: z.string().optional().describe("Filter from date (ISO string)"),
+    dateTo: z.string().optional().describe("Filter to date (ISO string)"),
+    limit: z.number().optional().default(20).describe("Maximum results"),
+    offset: z.number().optional().default(0).describe("Pagination offset"),
+  }),
+  handler: async ({ query, status, priority, tags, dateFrom, dateTo, limit, offset }, user) => {
+    return searchTasks({ 
+      query, status, priority, tags, dateFrom, dateTo, limit, offset, userId: user?.id 
+    });
+  },
+}
+```
+
+### Bulk Operations
+```typescript
+bulk_update: {
+  description: "Update multiple tasks at once with transaction safety",
+  inputSchema: z.object({
+    ids: z.array(z.string()).describe("Array of task IDs to update"),
+    updates: z.object({
+      status: z.enum(["pending", "in_progress", "completed"]).optional(),
+      priority: z.enum(["low", "medium", "high"]).optional(),
+      tags: z.array(z.string()).optional(),
+    }).describe("Updates to apply to all tasks"),
+  }),
+  handler: async ({ ids, updates }, user) => {
+    // Single user context - always authenticated
+    return await bulkUpdateTasks(ids, updates, user.id);
+  },
+}
+```
+
+### Complex Queries
+```typescript
+get_analytics: {
+  description: "Get comprehensive analytics for tasks",
+  inputSchema: z.object({
+    timeRange: z.enum(["day", "week", "month", "year"]).default("month"),
+    groupBy: z.enum(["status", "priority", "tags"]).optional(),
+  }),
+  handler: async ({ timeRange, groupBy }, user) => {
+    const analytics = await getTaskAnalytics(user.id, timeRange, groupBy);
+    return {
+      totalTasks: analytics.total,
+      completedTasks: analytics.completed,
+      pendingTasks: analytics.pending,
+      byStatus: analytics.byStatus,
+      byPriority: analytics.byPriority,
+      timeSeries: analytics.timeSeries,
+      insights: analytics.insights,
+    };
+  },
+}
+```
+
+## Relationships Between Resources
+
+Define connections to help AI agents understand your data structure:
+
+```typescript
+const taskResource = createResource({
+  name: "task",
+  schema: TaskSchema,
+  uri_template: "tasks/{id}",
+  relations: {
+    projectId: { type: "project" },      // Task belongs to one project
+    tagIds: { type: "tag" },             // Task can have multiple tags
+    parentTaskId: { type: "task" },      // Task can have a parent task (for subtasks)
+    assigneeId: { type: "user" },        // Task can be assigned to a user
+  },
+  methods: { /* ... */ },
+});
+```
+
+## Handler Patterns
+
+### Single User Context
+```typescript
+// All handlers receive consistent user context
+handler: async (data, user) => {
+  // user.id: 'single-user'
+  // user.username: 'api-user'
+  // user.scopes: ['read', 'write']
+  
+  return await processData(data, user);
+}
+```
+
+### Data Isolation and Security
+```typescript
+update: {
+  description: "Update a task with ownership validation",
+  handler: async ({ id, ...data }, user) => {
+    const task = await getTask(id);
+    if (!task) throw new Error("Task not found");
+    
+    // Validate data against schema
+    const validatedData = TaskUpdateSchema.parse(data);
+    
+    return await updateTask(id, validatedData, user.id);
+  },
+}
+```
+
+### Error Handling
+```typescript
+handler: async (data, user) => {
+  try {
+    // Your logic here
+    return await processData(data, user);
+  } catch (error) {
+    if (error.code === 'NOT_FOUND') {
+      throw new Error(`Resource not found: ${error.message}`);
+    }
+    if (error.code === 'VALIDATION_ERROR') {
+      throw new Error(`Invalid data: ${error.message}`);
+    }
+    
+    // Log unexpected errors
+    console.error('Unexpected error:', error);
+    throw new Error('Internal server error');
+  }
+}
+```
+
+## Best Practices
+
+1. **Descriptive Names**: Use clear, descriptive names for resources and methods
+2. **Input Validation**: Always validate inputs with Zod schemas
+3. **Error Messages**: Provide clear, actionable error messages
+4. **Schema Exposure**: Use `exposeTypes: true` for better AI agent understanding
+5. **Method Descriptions**: Write clear descriptions for all custom methods
+6. **Type Safety**: Leverage TypeScript and Zod for compile-time safety
+7. **Single User Focus**: Design for single user context with consistent authentication
+description: Resource design patterns and best practices for single-user MCP servers
+globs: ["**/*.ts", "**/*.tsx"]
+alwaysApply: false
+---
+description:
+globs:
+alwaysApply: false
+---

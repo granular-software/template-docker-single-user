@@ -1,0 +1,187 @@
+# Authentication Patterns for Single-User MCP Servers
+
+## API Key Authentication
+
+This template uses simple API key authentication for secure, single-user access:
+
+```typescript
+const server = createMCPServer({
+  name: "single_user_api",
+  resources: [resource],
+  auth: {
+    bearerToken: {
+      token: process.env.API_KEY,
+      userProfile: {
+        id: "single-user",
+        username: "api-user",
+        scopes: ["read", "write"],
+        metadata: {
+          clientType: "single-user",
+          version: "1.0.0",
+        },
+      },
+    },
+  },
+});
+```
+
+## User Context in Handlers
+
+### Consistent User Context
+```typescript
+handler: async (data, user) => {
+  // user object is always the same:
+  // - user.id: "single-user"
+  // - user.username: "api-user"
+  // - user.scopes: ["read", "write"]
+  // - user.metadata: { clientType: "single-user", version: "1.0.0" }
+  
+  // No need to check authentication - always present
+  return await processData(data, user);
+}
+```
+
+### Permission-Based Access Control
+```typescript
+// Check specific permissions
+const requirePermission = (requiredScope: string) => {
+  return (data: any, user: any) => {
+    if (!user.scopes.includes(requiredScope)) {
+      throw new Error(`Insufficient permissions - ${requiredScope} access required`);
+    }
+  };
+};
+
+// Use in handlers
+update: {
+  description: "Update a task (requires write permission)",
+  handler: async (data, user) => {
+    requirePermission("write")(data, user);
+    
+    // User has write permission, proceed with update
+    return await updateTask(data, user.id);
+  },
+}
+```
+
+## Security Patterns
+
+### API Key Validation
+```typescript
+// Custom API key validation
+const validateAPIKey = (token: string) => {
+  if (token !== process.env.API_KEY) {
+    throw new Error("Invalid API key");
+  }
+  
+  // Additional validation if needed
+  if (!process.env.API_KEY) {
+    throw new Error("API key not configured");
+  }
+  
+  return true;
+};
+```
+
+### Rate Limiting
+```typescript
+const server = createMCPServer({
+  name: "rate_limited_api",
+  resources: [resource],
+  auth: { /* auth config */ },
+  
+  // Rate limiting for API key
+  rateLimit: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 1000, // Requests per window
+    keyGenerator: (req) => {
+      // Rate limit by API key
+      return req.headers['x-api-key'] || req.query.api_key || 'anonymous';
+    },
+  },
+});
+```
+
+## Environment Configuration
+
+### Security Settings
+```bash
+# API Key Configuration
+API_KEY=your-secure-api-key-here
+JWT_SECRET=your-secure-secret-key
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=1000
+
+# Server Configuration
+SERVER_URL=http://localhost:3000
+PORT=3000
+```
+
+### Development vs Production
+```typescript
+const authConfig = process.env.NODE_ENV === 'production' ? {
+  // Production: strict settings
+  apiKey: process.env.API_KEY,
+  rateLimit: { windowMs: 15 * 60 * 1000, limit: 500 },
+  requireHttps: true,
+} : {
+  // Development: relaxed settings
+  apiKey: process.env.API_KEY || 'dev-api-key',
+  rateLimit: { windowMs: 15 * 60 * 1000, limit: 1000 },
+  requireHttps: false,
+};
+```
+
+## Usage Examples
+
+### HTTP Headers
+```bash
+# Set API key in header
+curl -H "X-API-Key: your-api-key-here" \
+     http://localhost:3000/api/tasks
+
+# Or use Authorization header
+curl -H "Authorization: Bearer your-api-key-here" \
+     http://localhost:3000/api/tasks
+```
+
+### Query Parameters
+```bash
+# Use query parameter
+curl "http://localhost:3000/api/tasks?api_key=your-api-key-here"
+```
+
+### Programmatic Usage
+```typescript
+const response = await fetch('http://localhost:3000/api/tasks', {
+  headers: {
+    'X-API-Key': process.env.API_KEY,
+    'Content-Type': 'application/json',
+  },
+});
+
+const tasks = await response.json();
+```
+
+## Best Practices
+
+1. **Secure API Keys**: Use cryptographically secure random API keys
+2. **Environment Variables**: Never hardcode API keys in source code
+3. **Rate Limiting**: Implement rate limiting to prevent abuse
+4. **HTTPS Only**: Use HTTPS in production for secure transmission
+5. **Input Validation**: Validate all inputs, especially authentication data
+6. **Error Handling**: Don't leak sensitive information in error messages
+7. **Monitoring**: Log all API key usage and authentication events
+8. **Regular Rotation**: Rotate API keys regularly
+9. **Access Control**: Use scopes to limit API key permissions
+10. **Audit Logging**: Log all authentication and authorization events
+description: Authentication patterns and security best practices for single-user MCP servers
+globs: ["**/*.ts", "**/*.tsx", "**/*.js"]
+alwaysApply: false
+---
+description:
+globs:
+alwaysApply: false
+---
