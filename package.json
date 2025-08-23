@@ -14,7 +14,7 @@
     "secret:generate": "bash scripts/generate-secret.sh"
   },
   "dependencies": {
-    "mcpresso": "^0.8.0",
+    "mcpresso": "^0.9.0",
     "zod": "^3.23.8",
     "express": "^4.18.2",
     "mcpresso-oauth-server": "^1.1.0",
