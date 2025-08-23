@@ -1,6 +1,6 @@
 {
   "name": "template-docker-single-user",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "{{PROJECT_DESCRIPTION}}",
   "main": "dist/server.js",
   "type": "module",
